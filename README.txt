@@ -1,40 +1,28 @@
-================================================================================
 PIHCM - PHẦN MỀM CHUẨN HÓA ĐỊA CHỈ BỆNH NHÂN
 ================================================================================
 Sản phẩm thuộc sở hữu của: Viện Pasteur TP HCM - Khoa KSPNBT
-Tác giả: Đinh Văn Ngôn (08888 31135)
+Liên hệ: Đinh Văn Ngôn (08888 31135)
 Phiên bản: 1.0 - Windows Edition (External Mapping)
 
+HUỚNG DẪN SỬ DỤNG CHI TIẾT:
+   
 🎯 TÍNH NĂNG CHÍNH:
-• Chuẩn hóa địa chỉ bệnh nhân theo đơn vị hành chính mới
-• Hỗ trợ Excel (.xlsx, .xls) và CSV
+• Chuẩn hóa địa chỉ bệnh nhân theo đơn vị hành chính mới sau 1/7/2025
+• Hỗ trợ Excel (.xlsx, .xls)
 • Xử lý nhiều sheet cùng lúc
 • Matching thông minh với fuzzy logic
 • Hỗ trợ ấp/thôn/khu phố (Sheet2)
 • Auto-restart khi thay đổi mapping
-• External mapping.xlsx có thể cập nhật được
-
-📁 CẤU TRÚC GÓI PHẦN MỀM:
-├── PIHCM - Chuyen doi don vi hanh chinh.exe  ← Chương trình chính (có icon)
-├── mapping.xlsx                              ← File cấu hình mapping (EXTERNAL)
-└── README.txt                                ← File hướng dẫn này
-
-🔧 ƯU ĐIỂM EXTERNAL MAPPING:
-✅ File mapping.xlsx ở bên ngoài - không nhúng vào .exe
-✅ Có thể thay thế mapping.xlsx bằng phiên bản mới
-✅ Người dùng có thể tự chỉnh sửa mapping
-✅ Dễ dàng cập nhật mà không cần build lại phần mềm
-✅ Backup và restore mapping dễ dàng
+• External mapping.xlsx có thể cập nhật, điều chỉnh theo địa phương
 
 🚀 CÁCH SỬ DỤNG:
 1. CHẠY CHƯƠNG TRÌNH:
    • Double-click vào file .exe
-   • Icon tùy chỉnh sẽ hiển thị tự động (embedded trong .exe)
    • Chương trình sẽ tự động tìm file mapping.xlsx cùng thư mục
 
 2. CHỌN FILE DANH SÁCH:
    • Click nút chọn file HOẶC kéo thả file vào cửa sổ
-   • Hỗ trợ: .xlsx, .xls, .csv
+   • Hỗ trợ: .xlsx, .xls
    • File phải có các cột: Xã, Huyện, Tỉnh
 
 ⚙️ CHỈNH SỬA MAPPING:
