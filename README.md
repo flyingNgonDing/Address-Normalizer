@@ -2,7 +2,7 @@
 
 **Phiên bản:** 1.0 – *Windows Edition (External Mapping)*  
 **Đơn vị:** Viện Pasteur TP. HCM – Khoa KSPNBT  
-**Tác giả:** Đinh Văn Ngôn – 📞 08888 31135
+**Liên hệ kỹ thuật:** Đinh Văn Ngôn – 📞 08888 31135
 
 ---
 
@@ -112,7 +112,7 @@
 
 ## 📞 Hỗ trợ kỹ thuật
 
-**Tác giả:** Đinh Văn Ngôn  
+**Liên hệ:** Đinh Văn Ngôn  
 **Đơn vị:** Viện Pasteur TP. HCM – Khoa KSPNBT  
 **Điện thoại:** 08888 31135
 
