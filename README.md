@@ -1,6 +1,6 @@
 # 🏥 PIHCM – Phần mềm chuẩn hóa địa chỉ bệnh nhân
 
-**Phiên bản:** 1.0 – *Windows Edition (External Mapping)*  
+**Phiên bản:** 1.0 – *Windows Edition*  
 **Đơn vị:** Viện Pasteur TP. HCM – Khoa KSPNBT  
 **Liên hệ kỹ thuật:** Đinh Văn Ngôn – 📞 08888 31135
 
