@@ -1,6 +1,6 @@
 """
 Module xử lý các thao tác file I/O
-UPDATED: Added .xls support and sheet selection functionality
+UPDATED: Enhanced .xls support with proper engine handling
 """
 import pandas as pd
 import os
@@ -10,7 +10,7 @@ from config import SUPPORTED_EXTENSIONS
 
 def read_file(file_path, sheet_name=None):
     """
-    Đọc file Excel hoặc CSV - UPDATED with .xls support and sheet selection
+    Đọc file Excel hoặc CSV - UPDATED with enhanced .xls support
     
     Args:
         file_path: Đường dẫn file
@@ -31,21 +31,36 @@ def read_file(file_path, sheet_name=None):
         raise ValueError(f"Định dạng file không được hỗ trợ: {file_ext}")
     
     try:
-        if file_ext in ['.xlsx', '.xls']:
-            # Support both .xlsx and .xls files
+        if file_ext == '.xlsx':
+            # Use openpyxl for .xlsx files
             if sheet_name is not None:
-                return pd.read_excel(file_path, sheet_name=sheet_name)
+                return pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
             else:
-                return pd.read_excel(file_path)
+                return pd.read_excel(file_path, engine='openpyxl')
+        elif file_ext == '.xls':
+            # Use xlrd for .xls files
+            if sheet_name is not None:
+                return pd.read_excel(file_path, sheet_name=sheet_name, engine='xlrd')
+            else:
+                return pd.read_excel(file_path, engine='xlrd')
         else:  # .csv
             return pd.read_csv(file_path, encoding='utf-8')
     except Exception as e:
-        raise Exception(f"Lỗi đọc file {file_path}: {str(e)}")
+        # Enhanced error handling with specific suggestions
+        error_msg = f"Lỗi đọc file {file_path}: {str(e)}"
+        
+        if file_ext == '.xls':
+            error_msg += f"\n\nGợi ý cho file .xls:"
+            error_msg += f"\n- Đảm bảo đã cài đặt xlrd: pip install xlrd==2.0.1"
+            error_msg += f"\n- Thử mở file bằng Excel và lưu lại định dạng .xlsx"
+            error_msg += f"\n- Kiểm tra file có bị hỏng không"
+        
+        raise Exception(error_msg)
 
 
 def get_excel_sheet_names(file_path):
     """
-    NEW: Lấy danh sách tên sheets trong file Excel
+    Lấy danh sách tên sheets trong file Excel - UPDATED with enhanced .xls support
     
     Args:
         file_path: Đường dẫn file Excel
@@ -65,11 +80,22 @@ def get_excel_sheet_names(file_path):
         raise ValueError(f"File không phải Excel: {file_ext}")
     
     try:
-        # Use ExcelFile to get sheet names without loading data
-        excel_file = pd.ExcelFile(file_path)
+        # Use appropriate engine based on file extension
+        if file_ext == '.xlsx':
+            excel_file = pd.ExcelFile(file_path, engine='openpyxl')
+        elif file_ext == '.xls':
+            excel_file = pd.ExcelFile(file_path, engine='xlrd')
+        
         return excel_file.sheet_names
     except Exception as e:
-        raise Exception(f"Lỗi đọc danh sách sheets từ {file_path}: {str(e)}")
+        error_msg = f"Lỗi đọc danh sách sheets từ {file_path}: {str(e)}"
+        
+        if file_ext == '.xls':
+            error_msg += f"\n\nGợi ý cho file .xls:"
+            error_msg += f"\n- Đảm bảo đã cài đặt xlrd: pip install xlrd==2.0.1"
+            error_msg += f"\n- Kiểm tra file có bị corrupt không"
+        
+        raise Exception(error_msg)
 
 
 def save_file(df, file_path):
@@ -84,14 +110,15 @@ def save_file(df, file_path):
         Exception: Nếu không thể lưu file
     """
     try:
-        df.to_excel(file_path, index=False)
+        # Always save as .xlsx for better compatibility
+        df.to_excel(file_path, index=False, engine='openpyxl')
     except Exception as e:
         raise Exception(f"Lỗi lưu file {file_path}: {str(e)}")
 
 
 def save_multiple_sheets(sheet_data_dict, file_path):
     """
-    NEW: Lưu multiple sheets vào file Excel
+    Lưu multiple sheets vào file Excel
     
     Args:
         sheet_data_dict: Dictionary {sheet_name: DataFrame}
@@ -190,3 +217,86 @@ def check_required_columns(df):
         'missing': missing,
         **found_columns
     }
+
+
+def test_excel_engines():
+    """
+    Test function to check available Excel engines
+    
+    Returns:
+        dict: Status of each engine
+    """
+    engines = {}
+    
+    # Test openpyxl
+    try:
+        import openpyxl
+        engines['openpyxl'] = f"✅ Available (version: {openpyxl.__version__})"
+    except ImportError:
+        engines['openpyxl'] = "❌ Not available"
+    
+    # Test xlrd
+    try:
+        import xlrd
+        engines['xlrd'] = f"✅ Available (version: {xlrd.__version__})"
+    except ImportError:
+        engines['xlrd'] = "❌ Not available"
+    
+    # Test xlsxwriter
+    try:
+        import xlsxwriter
+        engines['xlsxwriter'] = f"✅ Available (version: {xlsxwriter.__version__})"
+    except ImportError:
+        engines['xlsxwriter'] = "❌ Not available"
+    
+    return engines
+
+
+def diagnose_file_issue(file_path):
+    """
+    Diagnose issues with Excel file reading
+    
+    Args:
+        file_path: Path to the problematic file
+        
+    Returns:
+        dict: Diagnostic information
+    """
+    diagnosis = {
+        'file_exists': os.path.exists(file_path),
+        'file_size': 0,
+        'file_extension': '',
+        'engines': test_excel_engines(),
+        'pandas_version': pd.__version__,
+        'suggestions': []
+    }
+    
+    if diagnosis['file_exists']:
+        diagnosis['file_size'] = os.path.getsize(file_path)
+        diagnosis['file_extension'] = os.path.splitext(file_path.lower())[1]
+        
+        # Try to detect file corruption
+        try:
+            with open(file_path, 'rb') as f:
+                header = f.read(8)
+                if diagnosis['file_extension'] == '.xls':
+                    # Check for XLS signature
+                    if header[:2] != b'\xd0\xcf':
+                        diagnosis['suggestions'].append("File may be corrupted or not a valid .xls file")
+                elif diagnosis['file_extension'] == '.xlsx':
+                    # Check for ZIP signature (XLSX is a ZIP file)
+                    if header[:2] != b'PK':
+                        diagnosis['suggestions'].append("File may be corrupted or not a valid .xlsx file")
+        except Exception as e:
+            diagnosis['suggestions'].append(f"Cannot read file header: {e}")
+    
+    # Add engine-specific suggestions
+    if diagnosis['file_extension'] == '.xls':
+        if 'xlrd' in diagnosis['engines'] and '❌' in diagnosis['engines']['xlrd']:
+            diagnosis['suggestions'].append("Install xlrd for .xls support: pip install xlrd==2.0.1")
+    
+    if diagnosis['file_extension'] == '.xlsx':
+        if 'openpyxl' in diagnosis['engines'] and '❌' in diagnosis['engines']['openpyxl']:
+            diagnosis['suggestions'].append("Install openpyxl for .xlsx support: pip install openpyxl")
+    
+    return diagnosis
