@@ -1,7 +1,7 @@
 """
 File Processing Logic
 Handles file selection, processing, and multi-sheet operations
-FIXED: Resolved Pandas attribute access error in process_chunk_with_ap
+FIXED: Enhanced .xls support with proper file dialog and error handling
 """
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -12,7 +12,7 @@ import sys
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 
-from config import EXPANDED_GEOMETRY, COLORS, CHUNK_SIZE
+from config import EXPANDED_GEOMETRY, COLORS, CHUNK_SIZE, FILE_DIALOG_FILETYPES
 
 # Safe import for sheet_selector
 try:
@@ -22,7 +22,7 @@ except ImportError:
     def show_sheet_selector(parent, sheet_names, file_name):
         """Fallback sheet selector using simple dialog"""
         if len(sheet_names) == 1:
-            return sheet_names
+            return {'action': 'start_processing', 'sheets': sheet_names}
         
         # Simple selection dialog
         selection = messagebox.askyesno(
@@ -32,9 +32,9 @@ except ImportError:
         )
         
         if selection:
-            return sheet_names  # Process all sheets
+            return {'action': 'start_processing', 'sheets': sheet_names}  # Process all sheets
         else:
-            return [sheet_names[0]]  # Process only first sheet
+            return {'action': 'start_processing', 'sheets': [sheet_names[0]]}  # Process only first sheet
 
 from core.file_handler import read_file, save_file, save_multiple_sheets, check_required_columns, get_excel_sheet_names
 from core.text_processor import chuan_hoa, find_ap_column, find_address_column
@@ -56,38 +56,110 @@ class FileProcessor:
         self.components = components
     
     def chon_file(self):
-        """Chọn file thông qua dialog - UPDATED with .xls support"""
-        # Windows specific file dialog options
-        if sys.platform.startswith('win'):
+        """Chọn file thông qua dialog - FIXED with proper .xls support"""
+        try:
+            # FIXED: Use proper file dialog format from config
             file_benh_nhan = filedialog.askopenfilename(
                 title="Chọn file danh sách bệnh nhân",
-                filetypes=[
-                    ("Excel files", "*.xlsx;*.xls"), 
-                    ("CSV files", "*.csv"), 
-                    ("All supported", "*.xlsx;*.xls;*.csv"),
-                    ("All files", "*.*")
-                ],
-                initialdir=os.path.expanduser("~\\Desktop")  # Start at Desktop on Windows
-            )
-        else:
-            file_benh_nhan = filedialog.askopenfilename(
-                title="Chọn file danh sách bệnh nhân",
-                filetypes=[
-                    ("Excel files", "*.xlsx *.xls"), 
-                    ("CSV files", "*.csv"), 
-                    ("All files", "*.*")
-                ]
+                filetypes=FILE_DIALOG_FILETYPES,
+                initialdir=self._get_initial_dir()
             )
             
-        if not file_benh_nhan:
-            return
+            if not file_benh_nhan:
+                return
 
-        self.start_processing(file_benh_nhan)
+            # ADDED: Validate file extension
+            file_ext = os.path.splitext(file_benh_nhan.lower())[1]
+            if file_ext not in ['.xlsx', '.xls', '.csv']:
+                messagebox.showerror(
+                    "Lỗi định dạng file", 
+                    f"File không được hỗ trợ: {file_ext}\n\n"
+                    f"Chỉ hỗ trợ: .xlsx, .xls, .csv"
+                )
+                return
+
+            # ADDED: Check if file can be read
+            if not self._validate_file_accessibility(file_benh_nhan):
+                return
+
+            self.start_processing(file_benh_nhan)
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Lỗi chọn file:\n{str(e)}")
+    
+    def _get_initial_dir(self):
+        """Get initial directory for file dialog"""
+        if sys.platform.startswith('win'):
+            return os.path.expanduser("~\\Desktop")  # Windows Desktop
+        else:
+            return os.path.expanduser("~/Desktop")   # Unix Desktop
+    
+    def _validate_file_accessibility(self, file_path):
+        """Validate if file can be accessed and read"""
+        try:
+            # Check if file exists and is readable
+            if not os.path.exists(file_path):
+                messagebox.showerror("Lỗi", f"File không tồn tại:\n{file_path}")
+                return False
+            
+            if not os.access(file_path, os.R_OK):
+                messagebox.showerror("Lỗi", f"Không có quyền đọc file:\n{file_path}")
+                return False
+            
+            # Check file size (not too large)
+            file_size = os.path.getsize(file_path)
+            if file_size > 100 * 1024 * 1024:  # 100MB limit
+                result = messagebox.askyesno(
+                    "Cảnh báo", 
+                    f"File rất lớn ({file_size // (1024*1024)} MB).\n"
+                    f"Quá trình xử lý có thể mất nhiều thời gian.\n\n"
+                    f"Bạn có muốn tiếp tục không?",
+                    icon='warning'
+                )
+                if not result:
+                    return False
+            
+            # ADDED: Quick test to see if file can be opened
+            file_ext = os.path.splitext(file_path.lower())[1]
+            
+            if file_ext in ['.xlsx', '.xls']:
+                # Test Excel file reading
+                try:
+                    get_excel_sheet_names(file_path)
+                except Exception as e:
+                    error_msg = f"Lỗi đọc file Excel:\n{str(e)}"
+                    
+                    if file_ext == '.xls':
+                        error_msg += f"\n\n💡 GỢI Ý CHO FILE .XLS:"
+                        error_msg += f"\n- Đảm bảo đã cài đặt: pip install xlrd==2.0.1"
+                        error_msg += f"\n- Thử mở file bằng Excel và lưu lại thành .xlsx"
+                        error_msg += f"\n- Kiểm tra file có bị hỏng không"
+                    
+                    messagebox.showerror("Lỗi đọc file", error_msg)
+                    return False
+            
+            elif file_ext == '.csv':
+                # Test CSV file reading
+                try:
+                    pd.read_csv(file_path, nrows=1)  # Test read first row
+                except Exception as e:
+                    messagebox.showerror("Lỗi đọc CSV", f"Lỗi đọc file CSV:\n{str(e)}")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Lỗi kiểm tra file:\n{str(e)}")
+            return False
     
     def process_file_from_path(self, file_path):
         """Xử lý file từ đường dẫn"""
         if not os.path.exists(file_path):
             messagebox.showerror("Lỗi", f"File không tồn tại:\n{file_path}")
+            return
+        
+        # ADDED: Validate file before processing
+        if not self._validate_file_accessibility(file_path):
             return
         
         # Hiển thị thông báo xác nhận
@@ -102,76 +174,88 @@ class FileProcessor:
         
         self.start_processing(file_path)
     
-
     def start_processing(self, file_path):
-        """Bắt đầu quá trình xử lý file - UPDATED with new sheet selection flow"""
-        # Check if Excel file and get sheets
-        file_ext = os.path.splitext(file_path.lower())[1]
-        selected_sheets = None
-        
-        if file_ext in ['.xlsx', '.xls']:
-            try:
-                sheet_names = get_excel_sheet_names(file_path)
-                
-                if len(sheet_names) > 1:
-                    # Show sheet selector dialog
-                    file_name = os.path.basename(file_path)
-                    dialog_result = show_sheet_selector(self.root, sheet_names, file_name)
-                    
-                    # UPDATED: Handle new dialog result format
-                    if not dialog_result or dialog_result['action'] == 'cancel':
-                        return  # User cancelled
-                    
-                    if dialog_result['action'] == 'start_processing':
-                        selected_sheets = dialog_result['sheets']
-                        if not selected_sheets:
-                            messagebox.showwarning("Cảnh báo", "Không có sheet nào được chọn!")
-                            return
-                    else:
-                        return  # Unknown action
-                else:
-                    selected_sheets = [sheet_names[0]]  # Single sheet
-                    
-            except Exception as e:
-                messagebox.showerror("Lỗi", f"Lỗi đọc file Excel:\n{str(e)}")
-                return
-        else:
-            selected_sheets = [None]  # CSV file
-        
-        # Continue with existing processing logic...
-        # Animate window resize for Windows
-        if self.main_window.use_animations:
-            self.main_window.animate_window_resize()
-        else:
-            self.root.geometry(EXPANDED_GEOMETRY)
+        """Bắt đầu quá trình xử lý file - ENHANCED with better error handling"""
+        try:
+            # Check if Excel file and get sheets
+            file_ext = os.path.splitext(file_path.lower())[1]
+            selected_sheets = None
             
-        self.main_window.components.label.config(text="Đang khởi tạo xử lý...")
-        
-        # Ẩn các element không cần thiết
-        self.main_window.components.main_button_frame.pack_forget()
-        self.main_window.components.settings_container.pack_forget()
-        
-        self.main_window.components.control_frame.pack(pady=15)
-        self.main_window.components.log_frame.pack(fill="both", expand=True, pady=(0, 10))
+            if file_ext in ['.xlsx', '.xls']:
+                try:
+                    sheet_names = get_excel_sheet_names(file_path)
+                    
+                    if len(sheet_names) > 1:
+                        # Show sheet selector dialog
+                        file_name = os.path.basename(file_path)
+                        dialog_result = show_sheet_selector(self.root, sheet_names, file_name)
+                        
+                        # Handle dialog result
+                        if not dialog_result or dialog_result['action'] == 'cancel':
+                            return  # User cancelled
+                        
+                        if dialog_result['action'] == 'start_processing':
+                            selected_sheets = dialog_result['sheets']
+                            if not selected_sheets:
+                                messagebox.showwarning("Cảnh báo", "Không có sheet nào được chọn!")
+                                return
+                        else:
+                            return  # Unknown action
+                    else:
+                        selected_sheets = [sheet_names[0]]  # Single sheet
+                        
+                except Exception as e:
+                    error_msg = f"Lỗi đọc file Excel:\n{str(e)}"
+                    
+                    if file_ext == '.xls':
+                        error_msg += f"\n\n🔧 CÁCH KHẮC PHỤC FILE .XLS:"
+                        error_msg += f"\n1. Cài đặt đúng version xlrd:"
+                        error_msg += f"\n   pip uninstall xlrd -y"
+                        error_msg += f"\n   pip install xlrd==2.0.1"
+                        error_msg += f"\n\n2. Hoặc mở file bằng Excel và lưu thành .xlsx"
+                        error_msg += f"\n\n3. Kiểm tra file có bị hỏng không"
+                    
+                    messagebox.showerror("Lỗi đọc Excel", error_msg)
+                    return
+            else:
+                selected_sheets = [None]  # CSV file
+            
+            # Continue with existing processing logic...
+            # Animate window resize for Windows
+            if self.main_window.use_animations:
+                self.main_window.animate_window_resize()
+            else:
+                self.root.geometry(EXPANDED_GEOMETRY)
+                
+            self.main_window.components.label.config(text="Đang khởi tạo xử lý...")
+            
+            # Ẩn các element không cần thiết
+            self.main_window.components.main_button_frame.pack_forget()
+            self.main_window.components.settings_container.pack_forget()
+            
+            self.main_window.components.control_frame.pack(pady=15)
+            self.main_window.components.log_frame.pack(fill="both", expand=True, pady=(0, 10))
 
-        # Reset state
-        self.main_window.processing = True
-        self.main_window.stop_flag = False
-        self.main_window.paused = False
-        self.main_window.done_rows = 0
-        self.main_window.total_paused_time = 0
-        self.main_window.pause_start_time = 0
-        self.main_window.start_time = time.time()
-        
-        # Multi-sheet processing setup
-        self.main_window.current_sheet_index = 0
-        self.main_window.total_sheets = len(selected_sheets)
-        self.main_window.sheet_results = {}
-        
-        self.update_timer()
-        threading.Thread(target=self.xu_ly_file_sheets, args=(file_path, selected_sheets), daemon=True).start()
+            # Reset state
+            self.main_window.processing = True
+            self.main_window.stop_flag = False
+            self.main_window.paused = False
+            self.main_window.done_rows = 0
+            self.main_window.total_paused_time = 0
+            self.main_window.pause_start_time = 0
+            self.main_window.start_time = time.time()
+            
+            # Multi-sheet processing setup
+            self.main_window.current_sheet_index = 0
+            self.main_window.total_sheets = len(selected_sheets)
+            self.main_window.sheet_results = {}
+            
+            self.update_timer()
+            threading.Thread(target=self.xu_ly_file_sheets, args=(file_path, selected_sheets), daemon=True).start()
+            
+        except Exception as e:
+            messagebox.showerror("Lỗi khởi tạo", f"Lỗi khởi tạo xử lý:\n{str(e)}")
 
-    
     def xu_ly_file_sheets(self, file_path, selected_sheets):
         """Xử lý multiple sheets"""
         try:
@@ -221,13 +305,20 @@ class FileProcessor:
             self.root.after(0, self.main_window.reset_ui)
     
     def xu_ly_single_sheet(self, file_path, sheet_name, sheet_index):
-        """Xử lý một sheet đơn lẻ"""
+        """Xử lý một sheet đơn lẻ - ENHANCED with better error handling"""
         try:
             # Đọc data từ sheet
             if sheet_name is not None:
                 df = read_file(file_path, sheet_name)
             else:
                 df = read_file(file_path)  # CSV
+            
+            # Kiểm tra dữ liệu rỗng
+            if df.empty:
+                self.root.after(0, lambda: self.main_window.components.update_sheet_log(
+                    f"⚠️ Sheet rỗng: {sheet_name or 'Sheet1'}"
+                ))
+                return None
             
             # Kiểm tra các cột bắt buộc
             column_check = check_required_columns(df)
@@ -257,7 +348,11 @@ class FileProcessor:
             return processed_df
             
         except Exception as e:
-            print(f"Error processing sheet {sheet_name}: {e}")
+            error_msg = f"Error processing sheet {sheet_name}: {e}"
+            print(error_msg)
+            self.root.after(0, lambda: self.main_window.components.update_sheet_log(
+                f"❌ Lỗi xử lý sheet {sheet_name}: {str(e)}"
+            ))
             return None
     
     def _process_dataframe_chunks_with_ap(self, df, xa_col, huyen_col, tinh_col, ap_col, address_col, sheet_index):
@@ -368,26 +463,19 @@ class FileProcessor:
     
     def _save_multiple_sheets_result(self, original_file_path):
         """Lưu kết quả multiple sheets"""
-        # Windows specific file dialog
-        if sys.platform.startswith('win'):
+        try:
+            # FIXED: Windows specific file dialog
             file_luu = filedialog.asksaveasfilename(
                 title="Lưu file kết quả",
                 defaultextension=".xlsx",
                 filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-                initialdir=os.path.expanduser("~\\Desktop")
-            )
-        else:
-            file_luu = filedialog.asksaveasfilename(
-                title="Lưu file kết quả",
-                defaultextension=".xlsx",
-                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
+                initialdir=self._get_initial_dir()
             )
             
-        if not file_luu:
-            self.root.after(0, self.main_window.reset_ui)
-            return
+            if not file_luu:
+                self.root.after(0, self.main_window.reset_ui)
+                return
 
-        try:
             # Prepare sheet data for saving (keep original columns + new columns)
             sheets_to_save = {}
             total_processed = 0
