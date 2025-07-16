@@ -142,7 +142,7 @@ VIETTAT_MAP = {
 
 # SIMPLIFIED: Only essential words to remove at the end
 REMOVE_WORDS = [
-    'xa', 'phuong', 'huyen', 'quan', 'tinh', 'ap', 'thon', 'ban', 'khom', 'to'
+    'xa', 'phuong', 'huyen', 'quan', 'thi tran', 'tinh', 'ap', 'thon', 'ban', 'khom', 'to'
 ]
 
 # UI Configuration - Windows optimized
