@@ -126,3 +126,4 @@ Phần mềm thuộc quyền sở hữu của **Viện Pasteur TP. HCM**
 ---
 
 > 🙏 **Cảm ơn bạn đã sử dụng phần mềm PIHCM!**
+> ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/flyingNgonDing/Address-Normalizer?utm_source=oss&utm_medium=github&utm_campaign=flyingNgonDing%2FAddress-Normalizer&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
