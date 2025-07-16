@@ -31,7 +31,8 @@ def read_file(file_path, sheet_name=None):
         raise ValueError(f"Định dạng file không được hỗ trợ: {file_ext}")
     
     try:
-        if file_ext in ['.xlsx', '.xls']:
+        if file_ext in ['.xlsx', '.xls', 
+                       .csv']:
             # Support both .xlsx and .xls files
             if sheet_name is not None:
                 return pd.read_excel(file_path, sheet_name=sheet_name)
