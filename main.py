@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Chương trình chuẩn hóa địa chỉ bệnh nhân
-WINDOWS VERSION - ENHANCED with File Watcher for Auto-restart + EMBEDDED ICON
+WINDOWS VERSION - ENHANCED with File Watcher for Auto-restart + EMBEDDED ICON + XLS SUPPORT
 Entry point cho ứng dụng
 """
 import sys
@@ -195,7 +195,7 @@ def check_python_version():
     return True
 
 def check_dependencies():
-    """Kiểm tra các dependencies cần thiết"""
+    """Kiểm tra các dependencies cần thiết - ENHANCED for .xls support"""
     required_modules = [
         ('pandas', 'pandas'),
         ('thefuzz', 'thefuzz'),
@@ -206,34 +206,101 @@ def check_dependencies():
     # Optional modules for enhanced features
     optional_modules = [
         ('watchdog', 'watchdog'),  # For file watching
+        ('tkinterdnd2', 'tkinterdnd2'),  # For drag & drop
     ]
     
     missing_modules = []
     missing_optional = []
+    version_warnings = []
     
     for module_name, import_name in required_modules:
         try:
-            __import__(import_name)
-            print(f"✅ {module_name}")
+            module = __import__(import_name)
+            version = getattr(module, '__version__', 'unknown')
+            
+            # Special version checks
+            if module_name == 'xlrd':
+                # Check xlrd version for .xls support
+                if version != 'unknown':
+                    try:
+                        version_parts = version.split('.')
+                        major = int(version_parts[0])
+                        minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+                        
+                        if major > 2 or (major == 2 and minor > 0):
+                            version_warnings.append(f"xlrd {version} may not support .xls files. Recommended: xlrd==2.0.1")
+                            print(f"⚠️ {module_name} {version} (may not support .xls)")
+                        else:
+                            print(f"✅ {module_name} {version} (good for .xls support)")
+                    except:
+                        version_warnings.append(f"xlrd {version} - version unclear, recommend xlrd==2.0.1")
+                        print(f"⚠️ {module_name} {version} (version unclear)")
+                else:
+                    version_warnings.append(f"xlrd version unknown - recommend xlrd==2.0.1")
+                    print(f"⚠️ {module_name} (version unknown)")
+            elif module_name == 'pandas':
+                print(f"✅ {module_name} {version}")
+                # Check pandas version
+                if version != 'unknown':
+                    try:
+                        version_parts = version.split('.')
+                        major = int(version_parts[0])
+                        minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+                        
+                        if major < 1 or (major == 1 and minor < 3):
+                            version_warnings.append(f"pandas {version} is old. Recommended: pandas>=1.3.0")
+                    except:
+                        pass
+            else:
+                print(f"✅ {module_name} {version}")
+                
         except ImportError:
             missing_modules.append(module_name)
             print(f"❌ {module_name}")
     
     for module_name, import_name in optional_modules:
         try:
-            __import__(import_name)
-            print(f"✅ {module_name} (optional)")
+            module = __import__(import_name)
+            version = getattr(module, '__version__', 'unknown')
+            print(f"✅ {module_name} {version} (optional)")
         except ImportError:
             missing_optional.append(module_name)
-            print(f"⚠️ {module_name} (optional) - Auto-restart feature disabled")
+            
+            if module_name == 'watchdog':
+                print(f"⚠️ {module_name} (optional) - Auto-restart feature disabled")
+            elif module_name == 'tkinterdnd2':
+                print(f"⚠️ {module_name} (optional) - Drag & drop feature disabled")
+    
+    # Show warnings
+    if version_warnings:
+        print("\n⚠️ VERSION WARNINGS:")
+        for warning in version_warnings:
+            print(f"   {warning}")
     
     if missing_modules:
         error_msg = (
             f"❌ Thiếu các thư viện bắt buộc:\n"
             f"{', '.join(missing_modules)}\n\n"
-            f"Ứng dụng có thể không hoạt động đúng.\n\n"
-            f"Vui lòng chạy: pip install {' '.join(missing_modules)}"
         )
+        
+        if 'xlrd' in missing_modules:
+            error_msg += (
+                f"🔧 ĐẶC BIỆT CHO .XLS SUPPORT:\n"
+                f"pip install xlrd==2.0.1\n\n"
+            )
+        
+        error_msg += (
+            f"Ứng dụng có thể không hoạt động đúng.\n\n"
+            f"Vui lòng chạy:\n"
+            f"pip install {' '.join(missing_modules)}\n\n"
+        )
+        
+        if 'xlrd' in missing_modules:
+            error_msg += (
+                f"📝 LỆNH CỤ THỂ:\n"
+                f"pip install xlrd==2.0.1 openpyxl pandas thefuzz\n\n"
+            )
+        
         print(error_msg)
         try:
             import tkinter.messagebox as messagebox
@@ -242,11 +309,96 @@ def check_dependencies():
             pass
         return False
     
+    if version_warnings:
+        warning_msg = (
+            f"⚠️ Cảnh báo về phiên bản:\n\n"
+            f"{chr(10).join(version_warnings)}\n\n"
+            f"🔧 LỆNH KHẮC PHỤC:\n"
+            f"pip uninstall xlrd -y\n"
+            f"pip install xlrd==2.0.1\n\n"
+            f"Hoặc cài đặt lại tất cả:\n"
+            f"pip install xlrd==2.0.1 openpyxl pandas>=1.3.0 thefuzz\n\n"
+            f"Bạn có muốn tiếp tục không?"
+        )
+        
+        print(warning_msg)
+        try:
+            import tkinter.messagebox as messagebox
+            result = messagebox.askyesno("Cảnh báo phiên bản", warning_msg)
+            if not result:
+                return False
+        except:
+            pass
+    
     if missing_optional:
-        print(f"💡 Tip: Cài đặt {', '.join(missing_optional)} để có thêm tính năng:")
-        print(f"    pip install {' '.join(missing_optional)}")
+        print(f"\n💡 Tính năng bổ sung (tùy chọn):")
+        for module in missing_optional:
+            if module == 'watchdog':
+                print(f"   pip install watchdog  # Auto-restart khi mapping.xlsx thay đổi")
+            elif module == 'tkinterdnd2':
+                print(f"   pip install tkinterdnd2  # Drag & drop files")
     
     return True
+
+def test_excel_file_support():
+    """Test Excel file support explicitly"""
+    print("\n🔍 Testing Excel file support...")
+    
+    engines = {}
+    
+    # Test openpyxl
+    try:
+        import openpyxl
+        engines['openpyxl'] = f"✅ Available (version: {openpyxl.__version__})"
+        print(f"✅ openpyxl: {openpyxl.__version__} (.xlsx support)")
+    except ImportError:
+        engines['openpyxl'] = "❌ Not available"
+        print("❌ openpyxl: Not available (.xlsx support DISABLED)")
+    
+    # Test xlrd
+    try:
+        import xlrd
+        engines['xlrd'] = f"✅ Available (version: {xlrd.__version__})"
+        print(f"✅ xlrd: {xlrd.__version__} (.xls support)")
+        
+        # Test if xlrd can actually read .xls files
+        version = xlrd.__version__
+        version_parts = version.split('.')
+        major = int(version_parts[0])
+        minor = int(version_parts[1]) if len(version_parts) > 1 else 0
+        
+        if major > 2 or (major == 2 and minor > 0):
+            print(f"⚠️ xlrd {version} may not support .xls files!")
+            print(f"💡 Recommended: pip install xlrd==2.0.1")
+        else:
+            print(f"✅ xlrd {version} should support .xls files")
+            
+    except ImportError:
+        engines['xlrd'] = "❌ Not available"
+        print("❌ xlrd: Not available (.xls support DISABLED)")
+        print("💡 Install with: pip install xlrd==2.0.1")
+    
+    # Test pandas Excel integration
+    try:
+        import pandas as pd
+        print(f"✅ pandas: {pd.__version__} (Excel integration)")
+        
+        # Test if pandas can use the engines
+        available_engines = []
+        if 'openpyxl' in engines and '✅' in engines['openpyxl']:
+            available_engines.append('openpyxl')
+        if 'xlrd' in engines and '✅' in engines['xlrd']:
+            available_engines.append('xlrd')
+        
+        if available_engines:
+            print(f"✅ Available engines: {', '.join(available_engines)}")
+        else:
+            print("❌ No Excel engines available!")
+            
+    except ImportError:
+        print("❌ pandas: Not available")
+    
+    return engines
 
 def setup_windows_environment():
     """Thiết lập môi trường Windows"""
@@ -312,7 +464,7 @@ def create_tkinter_root():
         raise
 
 def main():
-    """Main function - ENHANCED with file watcher integration + EMBEDDED ICON"""
+    """Main function - ENHANCED with Excel support testing + XLS support"""
     print("🚀 Khởi động ứng dụng Chuẩn hóa địa chỉ bệnh nhân")
     print("=" * 50)
     
@@ -349,17 +501,22 @@ def main():
         
         # 3. Check dependencies
         print("📦 Checking dependencies...")
-        check_dependencies()  # Don't exit on failure, just warn
+        if not check_dependencies():
+            input("Press Enter to exit...")
+            sys.exit(1)
         
-        # 4. Setup Windows environment
+        # 4. Test Excel file support specifically
+        test_excel_file_support()
+        
+        # 5. Setup Windows environment
         print("🪟 Setting up Windows environment...")
         setup_windows_environment()
         
-        # 5. Create Tkinter root - WITH EMBEDDED ICON
+        # 6. Create Tkinter root - WITH EMBEDDED ICON
         print("🖼️  Creating GUI window with embedded icon...")
         root = create_tkinter_root()
         
-        # 6. Load mapping data
+        # 7. Load mapping data
         print("📊 Loading mapping data...")
         try:
             load_mapping()
@@ -375,7 +532,7 @@ def main():
             # Continue without mapping data
             print("⚠️  Continuing without mapping data...")
         
-        # 7. Show window and create main window
+        # 8. Show window and create main window
         print("🎨 Creating main window...")
         root.deiconify()  # Show window
         app = MainWindow(root)
@@ -384,7 +541,7 @@ def main():
         print("🔄 Re-applying window icon...")
         setup_window_icon(root)
         
-        # 8. NEW: Start file watching for auto-restart
+        # 9. NEW: Start file watching for auto-restart
         print("👁️ Setting up file watching...")
         file_watch_success = start_file_watching(app)
         if file_watch_success:
@@ -392,7 +549,7 @@ def main():
         else:
             print("⚠️ Auto-restart disabled - manual restart required for mapping changes")
         
-        # 9. Setup cleanup on exit
+        # 10. Setup cleanup on exit
         def on_app_exit():
             """Cleanup function when app exits"""
             print("🧹 Cleaning up...")
@@ -407,13 +564,13 @@ def main():
         # Bind cleanup to window close
         root.protocol("WM_DELETE_WINDOW", on_app_exit)
         
-        # 10. Start main loop
+        # 11. Start main loop
         print("✅ Application started successfully!")
         print("🖱️  GUI should be visible now...")
         print("")
         print("🆕 NEW FEATURES:")
         print("   ✅ Settings button is now visible")
-        print("   ✅ Support for .xls files")
+        print("   ✅ Support for .xls files (requires xlrd==2.0.1)")
         print("   ✅ Multi-sheet Excel processing")
         print("   ✅ Enhanced ấp matching for sheet2")
         print("   ✅ Author info displayed in bottom-right")
@@ -422,6 +579,13 @@ def main():
             print("   ✅ Auto-restart when mapping.xlsx is saved")
         else:
             print("   ⚠️ Auto-restart disabled (watchdog not available)")
+        print("")
+        print("🔧 XLS SUPPORT REQUIREMENTS:")
+        print("   CRITICAL: pip install xlrd==2.0.1")
+        print("   Note: xlrd versions > 2.0.1 do NOT support .xls files")
+        print("   If you get errors with .xls files, run:")
+        print("     pip uninstall xlrd -y")
+        print("     pip install xlrd==2.0.1")
         print("")
         print("📝 MAPPING.XLSX SHEET2 NEW STRUCTURE:")
         print("   Cột A: apcu (ấp cũ)")
@@ -473,7 +637,7 @@ if __name__ == "__main__":
     if sys.platform.startswith('win'):
         # Set console title for debugging
         try:
-            os.system("title PIHCM - Chuẩn hóa địa chỉ bệnh nhân - EMBEDDED ICON")
+            os.system("title PIHCM - Chuẩn hóa địa chỉ bệnh nhân - XLS SUPPORT")
         except:
             pass
         
@@ -491,6 +655,11 @@ if __name__ == "__main__":
         print("   ├── icon.ico          ← For development")
         print("   └── mapping.xlsx")
         print("   📝 Note: icon.ico embedded in .exe when compiled")
+        print("")
+        print("🔧 XLS SUPPORT SETUP:")
+        print("   If you get errors with .xls files, run:")
+        print("   pip uninstall xlrd -y")
+        print("   pip install xlrd==2.0.1")
         print("")
     
     # Handle command line arguments (for file associations)
