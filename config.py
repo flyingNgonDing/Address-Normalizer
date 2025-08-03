@@ -2,7 +2,6 @@
 Configuration và constants cho chương trình chuẩn hóa địa chỉ
 WINDOWS VERSION - Optimized for Windows 8/10/11
 FIXED: Direct removal of administrative abbreviations without conversion
-ADDED: Enhanced .xls support with proper file dialog formats
 """
 import os
 import sys
@@ -22,44 +21,6 @@ else:
 
 # Ensure APPLICATION_PATH uses Windows path format
 APPLICATION_PATH = os.path.normpath(APPLICATION_PATH)
-
-# File extensions hỗ trợ - UPDATED: Added .xls support
-SUPPORTED_EXTENSIONS = ('.xlsx', '.xls', '.csv')
-
-# FIXED: Windows-compatible file dialog formats
-if sys.platform.startswith('win'):
-    # Windows format - separate extensions with space
-    FILE_DIALOG_FILETYPES = [
-        ("Excel files", "*.xlsx *.xls"),
-        ("Excel 2007+ files", "*.xlsx"),
-        ("Excel 97-2003 files", "*.xls"),
-        ("CSV files", "*.csv"),
-        ("All supported files", "*.xlsx *.xls *.csv"),
-        ("All files", "*.*")
-    ]
-else:
-    # Unix/Linux format
-    FILE_DIALOG_FILETYPES = [
-        ("Excel files", "*.xlsx *.xls"),
-        ("Excel 2007+ files", "*.xlsx"),
-        ("Excel 97-2003 files", "*.xls"),
-        ("CSV files", "*.csv"),
-        ("All files", "*.*")
-    ]
-
-# Excel engine configuration - ADDED
-EXCEL_ENGINES = {
-    '.xlsx': 'openpyxl',
-    '.xls': 'xlrd'
-}
-
-# Dependencies with versions - ADDED
-REQUIRED_PACKAGES = {
-    'pandas': '>=1.3.0',
-    'openpyxl': '>=3.0.0',
-    'xlrd': '==2.0.1',  # CRITICAL: Specific version for .xls support
-    'thefuzz': '>=0.19.0'
-}
 
 # Pre-compiled regex patterns để tối ưu hiệu suất - FIXED for direct removal
 REGEX_PATTERNS = {
@@ -111,6 +72,9 @@ REGEX_PATTERNS = {
     'hem_ngo_pattern': re.compile(r'\b(hẻm|hem|h\.|ngõ|ngo|n\.)\s*(\d+[a-z]*(?:/\d+[a-z]*)*)', re.IGNORECASE),
 }
 
+# REMOVED: DONVI_MAP - No longer needed since we do direct removal
+# REMOVED: LOAI_BO_WORDS - Simplified approach
+
 # Mapping từ đầy đủ sang chuẩn hóa - NEW: Handle full words
 FULLWORD_MAP = {
     # Administrative units - full words to normalized form
@@ -133,7 +97,6 @@ FULLWORD_MAP = {
     r'\btổ dân phố\b': 'to dan pho',
     r'\bkhu vực\b': 'khu vuc',
 }
-
 VIETTAT_MAP = {
     # TP.HCM variations - ENHANCED
     r'\btp[.]?\s*h[.]?\s*c[.]?\s*m[.]?\b': 'thanh pho ho chi minh',
@@ -179,7 +142,7 @@ VIETTAT_MAP = {
 
 # SIMPLIFIED: Only essential words to remove at the end
 REMOVE_WORDS = [
-    'xa', 'phuong', 'huyen', 'quan', 'thi tran', 'thi xa', 'tinh', 'ap', 'thon', 'ban', 'khom', 'to'
+    'xa', 'phuong', 'huyen', 'quan', 'tinh', 'thi tran', 'ap', 'thon', 'ban', 'khom', 'to'
 ]
 
 # UI Configuration - Windows optimized
@@ -200,6 +163,9 @@ COLORS = {
     'button_bg': '#f5f5f5',        # Light gray for buttons
     'button_border': '#cccccc',    # Border color
 }
+
+# File extensions hỗ trợ
+SUPPORTED_EXTENSIONS = ('.xlsx', '.xls', '.csv')
 
 # Processing configuration - Windows optimized
 CHUNK_SIZE = 500  # Smaller chunks for Windows
