@@ -6,7 +6,6 @@ UPDATED: Fixed component access and improved initialization
 import os
 import re
 import urllib.parse
-import sys
 
 # ✅ FIXED: Always try to import tkinterdnd2, including in frozen executable
 try:
@@ -522,4 +521,5 @@ def get_drag_drop_info():
         'tkinterdnd2_available': DND_AVAILABLE,
         'win32_available': WIN32_AVAILABLE,
         'alternative_method': not DND_AVAILABLE
+
     }
