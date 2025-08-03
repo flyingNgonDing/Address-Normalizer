@@ -40,7 +40,7 @@ def read_file(file_path, sheet_name=None):
         else:  # .csv
             return pd.read_csv(file_path, encoding='utf-8')
     except Exception as e:
-        raise Exception(f"Lỗi đọc file {file_path}: {str(e)}")
+        raise Exception(f"Lỗi đọc file {file_path}: {str(e)}") from e
 
 
 def get_excel_sheet_names(file_path):
