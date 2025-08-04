@@ -1,6 +1,7 @@
 """
 Module xử lý drag & drop functionality
 WINDOWS VERSION - FIXED: Enable drag & drop for frozen executable
+UPDATED: Fixed component access and improved initialization
 """
 import os
 import re
@@ -30,10 +31,10 @@ try:
 except ImportError:
     # Fallback constants if config not available
     COLORS = {
-        'bg_primary': '#f0f0f0',
-        'bg_drag': '#e1f5fe',
-        'text_primary': '#2c3e50',
-        'text_secondary': '#7f8c8d',
+        'bg_primary': '#ffffff',
+        'bg_drag': '#e3f2fd',
+        'text_primary': '#1a1a1a',
+        'text_secondary': '#4a4a4a',
     }
     SUPPORTED_EXTENSIONS = ('.xlsx', '.xls', '.csv')
 
@@ -47,6 +48,8 @@ class DragDropHandler:
         self.original_bg_color = COLORS['bg_primary']
         self.drag_bg_color = COLORS['bg_drag']
         self.use_alternative_method = not DND_AVAILABLE
+        
+        print(f"🔧 DragDropHandler initialized. DND_AVAILABLE: {DND_AVAILABLE}")
     
     def setup_drag_drop(self):
         """Thiết lập tính năng kéo thả file với Windows fallback"""
@@ -58,36 +61,77 @@ class DragDropHandler:
     def _setup_tkinterdnd2(self):
         """Setup drag & drop using tkinterdnd2"""
         try:
+            print("🔧 Setting up tkinterdnd2...")
+            
             # Kích hoạt drag & drop cho cửa sổ chính
             self.main_window.root.drop_target_register(DND_FILES)
             self.main_window.root.dnd_bind('<<DropEnter>>', self.on_drop_enter)
             self.main_window.root.dnd_bind('<<DropLeave>>', self.on_drop_leave)
             self.main_window.root.dnd_bind('<<Drop>>', self.on_drop)
             
-            # FIXED: Check if components exist before accessing them
-            if hasattr(self.main_window, 'components') and self.main_window.components:
-                # Kích hoạt cho các widget con quan trọng
-                widgets_to_register = []
-                
-                # Only add widgets that exist
-                if hasattr(self.main_window.components, 'main_container') and self.main_window.components.main_container:
-                    widgets_to_register.append(self.main_window.components.main_container)
-                
-                if hasattr(self.main_window.components, 'header_frame') and self.main_window.components.header_frame:
-                    widgets_to_register.append(self.main_window.components.header_frame)
-                
-                if hasattr(self.main_window.components, 'main_button_frame') and self.main_window.components.main_button_frame:
-                    widgets_to_register.append(self.main_window.components.main_button_frame)
-                
-                for widget in widgets_to_register:
-                    try:
-                        if hasattr(widget, 'drop_target_register'):
-                            widget.drop_target_register(DND_FILES)
-                            widget.dnd_bind('<<DropEnter>>', self.on_drop_enter)
-                            widget.dnd_bind('<<DropLeave>>', self.on_drop_leave)
-                            widget.dnd_bind('<<Drop>>', self.on_drop)
-                    except Exception as e:
-                        print(f"Warning: Could not register drag&drop for widget: {e}")
+            print("✅ Root window registered for drag & drop")
+            
+            # ✅ FIXED: Wait for components to be created and register them properly
+            def register_components():
+                try:
+                    if (hasattr(self.main_window, 'components') and 
+                        self.main_window.components):
+                        
+                        # List of widgets to register for drag & drop
+                        widgets_to_register = []
+                        
+                        # Get components safely
+                        components = self.main_window.components
+                        
+                        # Add existing widgets
+                        if hasattr(components, 'main_container') and components.main_container:
+                            widgets_to_register.append(components.main_container)
+                            print("✅ Added main_container for D&D")
+                        
+                        if hasattr(components, 'header_frame') and components.header_frame:
+                            widgets_to_register.append(components.header_frame)
+                            print("✅ Added header_frame for D&D")
+                        
+                        if hasattr(components, 'main_button_frame') and components.main_button_frame:
+                            widgets_to_register.append(components.main_button_frame)
+                            print("✅ Added main_button_frame for D&D")
+                        
+                        if hasattr(components, 'progress_frame') and components.progress_frame:
+                            widgets_to_register.append(components.progress_frame)
+                            print("✅ Added progress_frame for D&D")
+                        
+                        # Register each widget
+                        success_count = 0
+                        for widget in widgets_to_register:
+                            try:
+                                if hasattr(widget, 'drop_target_register'):
+                                    widget.drop_target_register(DND_FILES)
+                                    widget.dnd_bind('<<DropEnter>>', self.on_drop_enter)
+                                    widget.dnd_bind('<<DropLeave>>', self.on_drop_leave)
+                                    widget.dnd_bind('<<Drop>>', self.on_drop)
+                                    success_count += 1
+                                else:
+                                    print(f"⚠️ Widget {widget} doesn't support drop_target_register")
+                            except Exception as e:
+                                print(f"⚠️ Could not register drag&drop for widget {widget}: {e}")
+                        
+                        print(f"✅ Successfully registered {success_count}/{len(widgets_to_register)} widgets for D&D")
+                        
+                        # Update drag hint to show D&D is active
+                        if hasattr(components, 'drag_hint') and components.drag_hint:
+                            components.drag_hint.configure(
+                                text="Kéo thả file vào cửa sổ hoặc nhấn nút bên dưới"
+                            )
+                            print("✅ Updated drag hint text")
+                    
+                    else:
+                        print("⚠️ Components not yet available for D&D registration")
+                        
+                except Exception as e:
+                    print(f"❌ Error registering components: {e}")
+            
+            # Schedule component registration after UI is created
+            self.main_window.root.after(500, register_components)
             
             print("✅ Drag & drop setup successful with tkinterdnd2")
             return True
@@ -99,14 +143,24 @@ class DragDropHandler:
     def _setup_alternative_method(self):
         """Setup alternative method without drag & drop"""
         try:
+            print("🔧 Setting up alternative method...")
+            
             # Update UI to indicate drag & drop is not available
-            if (hasattr(self.main_window, 'components') and 
-                self.main_window.components and 
-                hasattr(self.main_window.components, 'drag_hint') and 
-                self.main_window.components.drag_hint):
-                self.main_window.components.drag_hint.configure(
-                    text="Sử dụng nút 'Chọn file' để tải file lên"
-                )
+            def update_ui():
+                try:
+                    if (hasattr(self.main_window, 'components') and 
+                        self.main_window.components and 
+                        hasattr(self.main_window.components, 'drag_hint') and 
+                        self.main_window.components.drag_hint):
+                        self.main_window.components.drag_hint.configure(
+                            text="Nhấn nút bên dưới để chọn file (Drag & Drop không khả dụng)"
+                        )
+                        print("✅ Updated UI for alternative method")
+                except Exception as e:
+                    print(f"⚠️ Could not update UI: {e}")
+            
+            # Schedule UI update
+            self.main_window.root.after(500, update_ui)
             
             # Setup keyboard shortcuts as alternative
             self.main_window.root.bind('<Control-o>', lambda e: self.main_window.chon_file())
@@ -120,12 +174,14 @@ class DragDropHandler:
     
     def on_drop_enter(self, event):
         """Xử lý khi file được kéo vào cửa sổ - Windows optimized"""
+        print("🎯 Drag enter detected")
         if not self.main_window.processing and not self.drag_active:
             self.drag_active = True
             self.update_drag_visual(True)
     
     def on_drop_leave(self, event):
         """Xử lý khi file được kéo ra khỏi cửa sổ - Windows optimized"""
+        print("🎯 Drag leave detected")
         if self.drag_active:
             # Check if mouse is really outside the window
             try:
@@ -145,7 +201,10 @@ class DragDropHandler:
     
     def on_drop(self, event):
         """Xử lý khi file được thả vào cửa sổ - Windows optimized"""
+        print(f"🎯 Drop detected! Event data: {repr(event.data)}")
+        
         if self.main_window.processing:
+            print("⚠️ Already processing, ignoring drop")
             return
         
         self.drag_active = False
@@ -302,11 +361,19 @@ class DragDropHandler:
             return
         
         print(f"✅ Processing file via drag & drop: {file_path}")
-        # Call main window method to process file
-        if hasattr(self.main_window, 'process_file_from_path'):
-            self.main_window.process_file_from_path(file_path)
-        else:
-            print("❌ main_window doesn't have process_file_from_path method")
+        
+        # ✅ FIXED: Call the correct method from main_window
+        try:
+            if hasattr(self.main_window, 'process_file_from_path'):
+                self.main_window.process_file_from_path(file_path)
+            elif hasattr(self.main_window, 'file_processor') and hasattr(self.main_window.file_processor, 'process_file_from_path'):
+                self.main_window.file_processor.process_file_from_path(file_path)
+            else:
+                print("❌ Could not find method to process file")
+                self._show_error("Lỗi nội bộ: Không thể xử lý file được kéo thả.")
+        except Exception as e:
+            print(f"❌ Error processing dropped file: {e}")
+            self._show_error(f"Lỗi xử lý file: {str(e)}")
     
     def _validate_file_format(self, file_path):
         """Validate file format"""
@@ -347,95 +414,98 @@ class DragDropHandler:
     def update_drag_visual(self, is_dragging):
         """Cập nhật giao diện khi kéo thả file - Windows optimized"""
         try:
-            # FIXED: Only update widgets that exist
+            print(f"🎨 Updating drag visual: {is_dragging}")
+            
+            # ✅ FIXED: Only update widgets that exist and are accessible
             if (hasattr(self.main_window, 'components') and 
                 self.main_window.components):
                 
+                components = self.main_window.components
+                
                 if is_dragging:
+                    print("🎨 Setting drag visual ON")
                     # Thay đổi màu nền khi kéo file vào
-                    widgets_to_update = [
-                        self.main_window.root,
-                    ]
+                    widgets_to_update = [self.main_window.root]
                     
                     # Only add widgets that exist
-                    if hasattr(self.main_window.components, 'main_container') and self.main_window.components.main_container:
-                        widgets_to_update.append(self.main_window.components.main_container)
-                    if hasattr(self.main_window.components, 'header_frame') and self.main_window.components.header_frame:
-                        widgets_to_update.append(self.main_window.components.header_frame)
-                    if hasattr(self.main_window.components, 'main_button_frame') and self.main_window.components.main_button_frame:
-                        widgets_to_update.append(self.main_window.components.main_button_frame)
-                    if hasattr(self.main_window.components, 'progress_frame') and self.main_window.components.progress_frame:
-                        widgets_to_update.append(self.main_window.components.progress_frame)
+                    if hasattr(components, 'main_container') and components.main_container:
+                        widgets_to_update.append(components.main_container)
+                    if hasattr(components, 'header_frame') and components.header_frame:
+                        widgets_to_update.append(components.header_frame)
+                    if hasattr(components, 'main_button_frame') and components.main_button_frame:
+                        widgets_to_update.append(components.main_button_frame)
+                    if hasattr(components, 'progress_frame') and components.progress_frame:
+                        widgets_to_update.append(components.progress_frame)
                     
                     for widget in widgets_to_update:
                         try:
                             widget.configure(bg=self.drag_bg_color)
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not update widget background: {e}")
                     
                     # Thay đổi text để hiển thị hướng dẫn
-                    if hasattr(self.main_window.components, 'label') and self.main_window.components.label:
+                    if hasattr(components, 'label') and components.label:
                         try:
-                            self.main_window.components.label.configure(
+                            components.label.configure(
                                 text="📁 Thả file vào đây để xử lý", 
                                 fg='#1976d2', 
                                 bg=self.drag_bg_color
                             )
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not update label: {e}")
                     
-                    if hasattr(self.main_window.components, 'drag_hint') and self.main_window.components.drag_hint:
+                    if hasattr(components, 'drag_hint') and components.drag_hint:
                         try:
-                            self.main_window.components.drag_hint.configure(
+                            components.drag_hint.configure(
                                 text=f"Hỗ trợ file: {', '.join(SUPPORTED_EXTENSIONS)}",
                                 fg='#1976d2',
                                 bg=self.drag_bg_color
                             )
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not update drag hint: {e}")
+                            
                 else:
+                    print("🎨 Setting drag visual OFF")
                     # Khôi phục màu nền ban đầu
-                    widgets_to_update = [
-                        self.main_window.root,
-                    ]
+                    widgets_to_update = [self.main_window.root]
                     
                     # Only add widgets that exist
-                    if hasattr(self.main_window.components, 'main_container') and self.main_window.components.main_container:
-                        widgets_to_update.append(self.main_window.components.main_container)
-                    if hasattr(self.main_window.components, 'header_frame') and self.main_window.components.header_frame:
-                        widgets_to_update.append(self.main_window.components.header_frame)
-                    if hasattr(self.main_window.components, 'main_button_frame') and self.main_window.components.main_button_frame:
-                        widgets_to_update.append(self.main_window.components.main_button_frame)
-                    if hasattr(self.main_window.components, 'progress_frame') and self.main_window.components.progress_frame:
-                        widgets_to_update.append(self.main_window.components.progress_frame)
+                    if hasattr(components, 'main_container') and components.main_container:
+                        widgets_to_update.append(components.main_container)
+                    if hasattr(components, 'header_frame') and components.header_frame:
+                        widgets_to_update.append(components.header_frame)
+                    if hasattr(components, 'main_button_frame') and components.main_button_frame:
+                        widgets_to_update.append(components.main_button_frame)
+                    if hasattr(components, 'progress_frame') and components.progress_frame:
+                        widgets_to_update.append(components.progress_frame)
                     
                     for widget in widgets_to_update:
                         try:
                             widget.configure(bg=self.original_bg_color)
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not restore widget background: {e}")
                     
                     # Khôi phục text ban đầu
-                    if hasattr(self.main_window.components, 'label') and self.main_window.components.label:
+                    if hasattr(components, 'label') and components.label:
                         try:
-                            self.main_window.components.label.configure(
+                            components.label.configure(
                                 text="Sẵn sàng xử lý danh sách bệnh nhân",
                                 fg=COLORS['text_primary'],
                                 bg=self.original_bg_color
                             )
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not restore label: {e}")
                     
-                    if hasattr(self.main_window.components, 'drag_hint') and self.main_window.components.drag_hint:
+                    if hasattr(components, 'drag_hint') and components.drag_hint:
                         try:
-                            hint_text = "Kéo thả file vào đây hoặc nhấn nút bên dưới" if DND_AVAILABLE else "Sử dụng nút 'Chọn file' để tải file lên"
-                            self.main_window.components.drag_hint.configure(
+                            hint_text = "Kéo thả file vào cửa sổ hoặc nhấn nút bên dưới" if DND_AVAILABLE else "Nhấn nút bên dưới để chọn file"
+                            components.drag_hint.configure(
                                 text=hint_text,
                                 fg=COLORS['text_secondary'],
                                 bg=self.original_bg_color
                             )
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Could not restore drag hint: {e}")
                         
         except Exception as e:
             print(f"❌ Error updating drag visual: {e}")
