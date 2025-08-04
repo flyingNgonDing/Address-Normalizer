@@ -1,5 +1,5 @@
 """
-Main GUI window - UPDATED: Removed animation for settings button
+Main GUI window - UPDATED: Fixed drag & drop initialization
 """
 import tkinter as tk
 from tkinter import messagebox
@@ -19,7 +19,7 @@ from utils.helpers import open_file_with_system, get_mapping_file_path
 
 
 class MainWindow:
-    """Main application window - Updated: Simple settings button"""
+    """Main application window - Updated: Fixed drag & drop setup"""
     
     def __init__(self, root):
         self.root = root
@@ -27,7 +27,8 @@ class MainWindow:
         self.setup_variables()
         self.setup_styles()
         
-        # Initialize components
+        # Initialize components FIRST
+        print("🔧 Initializing components...")
         self.components = WindowComponents(self)
         self.file_processor = FileProcessor(self)
         self.animation_handler = AnimationHandler(self)
@@ -36,16 +37,26 @@ class MainWindow:
         self.file_processor.set_components(self.components)
         self.animation_handler.set_components(self.components)
         
+        # Setup UI
+        print("🔧 Setting up UI...")
         self.setup_ui()
-        self.setup_drag_drop()
+        
+        # Setup Windows-specific features
         self.setup_windows_specific()
+        
+        # ✅ FIXED: Setup drag & drop AFTER UI is created
+        print("🔧 Setting up drag & drop...")
+        self.setup_drag_drop()
         
         # Force update to ensure author info is visible
         self.root.after(200, self.ensure_author_info_visible)
         
+        # ✅ NEW: Check drag & drop status after initialization
+        self.root.after(1000, self.check_drag_drop_status)
+        
     def setup_window(self):
         """Thiết lập cửa sổ chính - Windows optimized"""
-        self.root.title("Chuẩn hoá địa chỉ bệnh nhân - Windows")
+        self.root.title("Chuẩn hoá địa chỉ bệnh nhân - Windows [D&D Support]")
         self.root.geometry(DEFAULT_GEOMETRY)
         self.root.resizable(False, False)
         self.root.configure(bg=COLORS['bg_primary'])
@@ -110,6 +121,9 @@ class MainWindow:
         settings = self.animation_helper.get_animation_settings()
         self.animation_steps = settings['steps']
         self.animation_delay = settings['delay']
+        
+        # ✅ NEW: Drag drop handler reference
+        self.drag_drop_handler = None
     
     def setup_styles(self):
         """Thiết lập styles"""
@@ -143,12 +157,62 @@ class MainWindow:
             print(f"Error ensuring author info visibility: {e}")
     
     def setup_drag_drop(self):
-        """Thiết lập drag & drop"""
-        self.drag_drop_handler = DragDropHandler(self)
-        success = self.drag_drop_handler.setup_drag_drop()
-        
-        if not success:
-            print("Drag & drop not available, using alternative file selection")
+        """Thiết lập drag & drop - FIXED: After UI creation"""
+        print("🔧 Setting up drag & drop handler...")
+        try:
+            self.drag_drop_handler = DragDropHandler(self)
+            success = self.drag_drop_handler.setup_drag_drop()
+            
+            if success:
+                print("✅ Drag & drop setup successful!")
+                # Update window title to show D&D is active
+                current_title = self.root.title()
+                if "[D&D Support]" not in current_title:
+                    self.root.title(current_title.replace("Windows", "Windows [D&D Active]"))
+            else:
+                print("⚠️ Drag & drop not available, using alternative file selection")
+                # Update window title to show D&D is not available
+                current_title = self.root.title()
+                if "[D&D Support]" in current_title:
+                    self.root.title(current_title.replace("[D&D Support]", "[No D&D]"))
+                    
+        except Exception as e:
+            print(f"❌ Error setting up drag & drop: {e}")
+            self.drag_drop_handler = None
+    
+    def check_drag_drop_status(self):
+        """Check and report drag & drop status"""
+        try:
+            if self.drag_drop_handler and is_drag_drop_available():
+                print("✅ Drag & Drop Status: ACTIVE")
+                print("📁 You can now drag & drop files into the window!")
+                
+                # Show brief notification in the UI
+                if hasattr(self.components, 'drag_hint') and self.components.drag_hint:
+                    original_text = self.components.drag_hint.cget('text')
+                    self.components.drag_hint.configure(
+                        text="✅ Drag & Drop đã sẵn sàng! Kéo file vào cửa sổ",
+                        fg='#2e7d32'  # Green color
+                    )
+                    
+                    # Restore original text after 3 seconds
+                    def restore_text():
+                        try:
+                            if hasattr(self.components, 'drag_hint') and self.components.drag_hint:
+                                self.components.drag_hint.configure(
+                                    text="Kéo thả file vào cửa sổ hoặc nhấn nút bên dưới",
+                                    fg=COLORS['text_secondary']
+                                )
+                        except:
+                            pass
+                    
+                    self.root.after(3000, restore_text)
+            else:
+                print("⚠️ Drag & Drop Status: NOT AVAILABLE")
+                print("🖱️ Please use the button to select files")
+                
+        except Exception as e:
+            print(f"❌ Error checking drag & drop status: {e}")
     
     def setup_windows_specific(self):
         """Thiết lập các tính năng đặc biệt cho Windows"""
@@ -192,7 +256,10 @@ class MainWindow:
     
     def show_help(self):
         """Hiển thị help"""
-        help_text = """
+        # Check drag & drop status for help text
+        drag_status = "✅ HOẠT ĐỘNG" if (self.drag_drop_handler and is_drag_drop_available()) else "❌ KHÔNG KHẢ DỤNG"
+        
+        help_text = f"""
 HƯỚNG DẪN SỬ DỤNG
 
 1. Chọn file danh sách bệnh nhân (Excel hoặc CSV)
@@ -200,6 +267,11 @@ HƯỚNG DẪN SỬ DỤNG
 3. Với Excel nhiều sheet: chọn sheets cần xử lý
 4. Chương trình sẽ tự động chuẩn hóa địa chỉ
 5. Kết quả được lưu vào file Excel mới
+
+TÍNH NĂNG KÉO THẢ (DRAG & DROP):
+Status: {drag_status}
+- Kéo file trực tiếp vào cửa sổ để xử lý
+- Hỗ trợ .xlsx, .xls, .csv
 
 PHÍM TẮT:
 - Ctrl+O: Chọn file
@@ -234,7 +306,8 @@ HỖ TRỢ:
         return self.file_processor.chon_file()
     
     def process_file_from_path(self, file_path):
-        """Xử lý file từ đường dẫn"""
+        """Xử lý file từ đường dẫn - ✅ FIXED: This method must exist for drag & drop"""
+        print(f"🔧 MainWindow.process_file_from_path called with: {file_path}")
         return self.file_processor.process_file_from_path(file_path)
     
     def toggle_pause(self):
