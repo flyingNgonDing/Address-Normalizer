@@ -1,4 +1,4 @@
-# 🏥 PIHCM – Phần mềm chuẩn hóa địa chỉ bệnh nhân
+# PIHCM – Phần mềm chuẩn hóa địa chỉ bệnh nhân
 
 **Phiên bản:** 1.0 – *Windows Edition*  
 **Đơn vị:** Viện Pasteur TP. HCM – Khoa KSPNBT  
@@ -6,45 +6,45 @@
 
 ---
 
-## 🔽 Tải xuống phần mềm
+## Tải xuống phần mềm
 
-🆕 **Người dùng lần đầu nên tải gói đầy đủ (.zip):**
+ **Người dùng lần đầu nên tải gói đầy đủ (.zip):**
 
-👉 [📦 Chuan.Hoa.Don.Vi.Hanh.Chinh.v1.0.zip](https://github.com/flyingNgonDing/Address-Normalizer/releases/download/v1.0/Chuan.Hoa.Don.Vi.Hanh.Chinh.v1.0.zip)  
+ [📦 Chuan.Hoa.Don.Vi.Hanh.Chinh.v1.0.zip](https://github.com/flyingNgonDing/Address-Normalizer/releases/download/v1.0/Chuan.Hoa.Don.Vi.Hanh.Chinh.v1.0.zip)  
 *(Gồm phần mềm `.exe` + file dữ liệu `mapping.xlsx`)*
 
-🔸 Hoặc tải riêng từng thành phần:
+ Hoặc tải riêng từng thành phần:
 
 - [💻 Phần mềm (.exe)](https://github.com/flyingNgonDing/Address-Normalizer/releases/download/v1.0/PIHCM.-.Chuyen.doi.don.vi.hanh.chinh.exe)  
 - [📊 File mapping.xlsx](https://github.com/flyingNgonDing/Address-Normalizer/releases/download/v1.0/mapping.xlsx)
 
 ---
 
-## 📖 Mục lục
+## Mục lục
 
-- [🎯 Chức năng chính](#-chức-năng-chính)
-- [🚀 Cách sử dụng](#-cách-sử-dụng)
-- [⚙️ Chỉnh sửa mapping](#️-chỉnh-sửa-mapping)
-- [📂 Cấu trúc mapping.xlsx](#-cấu-trúc-mappingxlsx)
-- [💻 Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-- [📞 Hỗ trợ kỹ thuật](#-hỗ-trợ-kỹ-thuật)
-- [⚖️ Bản quyền](#-bản-quyền)
-
----
-
-## 🎯 Chức năng chính
-
-- ✅ Chuẩn hóa địa chỉ xã/huyện/tỉnh theo đơn vị hành chính mới (sau ngày 01/07/2025)
-- 📂 Hỗ trợ định dạng Excel `.xlsx`, `.xls`
-- 📑 Xử lý nhiều sheet Excel trong cùng một lần
-- 🤖 Matching thông minh với thuật toán fuzzy logic
-- 🧩 Hỗ trợ địa danh cấp ấp/thôn/khu phố thông qua Sheet2
-- 🔄 Tự động khởi động lại khi file mapping.xlsx được cập nhật
-- 📁 Dễ dàng thay thế hoặc điều chỉnh file mapping.xlsx ngoài chương trình
+- [ Chức năng chính](#-chức-năng-chính)
+- [ Cách sử dụng](#-cách-sử-dụng)
+- [ Chỉnh sửa mapping](#️-chỉnh-sửa-mapping)
+- [ Cấu trúc mapping.xlsx](#-cấu-trúc-mappingxlsx)
+- [ Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
+- [ Hỗ trợ kỹ thuật](#-hỗ-trợ-kỹ-thuật)
+- [ Bản quyền](#-bản-quyền)
 
 ---
 
-## 🚀 Cách sử dụng
+## Chức năng chính
+
+-  Chuẩn hóa địa chỉ xã/huyện/tỉnh theo đơn vị hành chính mới (sau ngày 01/07/2025)
+- Hỗ trợ định dạng Excel `.xlsx`, `.xls`
+- Xử lý nhiều sheet Excel trong cùng một lần
+- Matching thông minh với thuật toán fuzzy logic
+- Hỗ trợ địa danh cấp ấp/thôn/khu phố thông qua Sheet2
+- Tự động khởi động lại khi file mapping.xlsx được cập nhật
+- Dễ dàng thay thế hoặc điều chỉnh file mapping.xlsx ngoài chương trình
+
+---
+
+## Cách sử dụng
 
 1. **Chạy chương trình:**
    - Nhấp đúp vào file `.exe`
@@ -62,7 +62,7 @@
 
 ---
 
-## ⚙️ Chỉnh sửa mapping
+## Chỉnh sửa mapping
 
 ### Cách 1 – Từ giao diện phần mềm:
 - Click nút ⚙️ (bánh răng)
@@ -77,9 +77,9 @@
 
 ---
 
-## 📂 Cấu trúc mapping.xlsx
+## Cấu trúc mapping.xlsx
 
-### 📄 Sheet1 – Đơn vị hành chính (Xã → Xã)
+### Sheet1 – Đơn vị hành chính (Xã → Xã)
 | Cột | Nội dung         |
 |------|------------------|
 | A    | `xacu` – Tên xã cũ |
@@ -88,7 +88,7 @@
 | D    | `xamoi` – Tên xã mới |
 | E    | `tinhmoi` – Tên tỉnh mới |
 
-### 📄 Sheet2 – Thôn/ấp/khu phố (Ấp → Ấp)
+### Sheet2 – Thôn/ấp/khu phố (Ấp → Ấp)
 | Cột | Nội dung          |
 |------|-------------------|
 | A    | `apcu` – Ấp/thôn/KP cũ |
@@ -101,7 +101,7 @@
 
 ---
 
-## 💻 Yêu cầu hệ thống
+## Yêu cầu hệ thống
 
 - Hệ điều hành: Windows 8/8.1/10/11 (32-bit hoặc 64-bit)
 - RAM: Tối thiểu 2GB (khuyến nghị 4GB trở lên)
@@ -116,11 +116,7 @@
 **Đơn vị:** Viện Pasteur TP. HCM – Khoa KSPNBT  
 **Điện thoại:** 08888 31135
 
----
-
-## ⚖️ Bản quyền
-
-Phần mềm thuộc quyền sở hữu của **Viện Pasteur TP. HCM**  
 🔒 Chỉ sử dụng nội bộ – **Không phân phối lại, không thương mại hóa**
 
 ---
+
